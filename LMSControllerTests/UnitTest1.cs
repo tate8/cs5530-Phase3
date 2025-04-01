@@ -14,9 +14,9 @@ namespace LMSControllerTests
         // Uncomment the methods below after scaffolding
         // (they won't compile until then)
 
-        //[Fact]
-        //public void Test1()
-        //{
+        // [Fact]
+        // public void Test1()
+        // {
         //    // An example of a simple unit test on the CommonController
         //    CommonController ctrl = new CommonController(MakeTinyDB());
 
@@ -26,35 +26,66 @@ namespace LMSControllerTests
 
         //    Assert.Equal( 1, x.Length );
         //    Assert.Equal( "CS", x[0].subject );
-        //}
+        // }
+        [Fact]
+        public void CreateDepartmentTest()
+        {
+           AdministratorController ctrl = new(MakeEmptyDB());
+           
+           var success = ctrl.CreateDepartment("CS", "Comp Sci") as JsonResult;
+           dynamic x = success.Value;
+           Assert.Equal( true, x.success );
+
+           var success2 = ctrl.CreateDepartment("CS", "Comp Sci") as JsonResult;
+           dynamic x2 = success2.Value;
+           Assert.Equal( false, x2.success );
+        }
 
 
-        ///// <summary>
-        ///// Make a very tiny in-memory database, containing just one department
-        ///// and nothing else.
-        ///// </summary>
-        ///// <returns></returns>
-        //LMSContext MakeTinyDB()
-        //{
-        //    var contextOptions = new DbContextOptionsBuilder<LMSContext>()
-        //    .UseInMemoryDatabase( "LMSControllerTest" )
-        //    .ConfigureWarnings( b => b.Ignore( InMemoryEventId.TransactionIgnoredWarning ) )
-        //    .UseApplicationServiceProvider( NewServiceProvider() )
-        //    .Options;
 
-        //    var db = new LMSContext(contextOptions);
+        /// <summary>
+        /// Make a very tiny in-memory database, containing just one department
+        /// and nothing else.
+        /// </summary>
+        /// <returns></returns>
+        LMSContext MakeTinyDB()
+        {
+           var contextOptions = new DbContextOptionsBuilder<LMSContext>()
+           .UseInMemoryDatabase( "LMSControllerTest" )
+           .ConfigureWarnings( b => b.Ignore( InMemoryEventId.TransactionIgnoredWarning ) )
+           .UseApplicationServiceProvider( NewServiceProvider() )
+           .Options;
 
-        //    db.Database.EnsureDeleted();
-        //    db.Database.EnsureCreated();
+           var db = new LMSContext(contextOptions);
 
-        //    db.Departments.Add( new Department { Name = "KSoC", Subject = "CS" } );
+           db.Database.EnsureDeleted();
+           db.Database.EnsureCreated();
 
-        //    // TODO: add more objects to the test database
+           db.Departments.Add( new Department { Name = "KSoC", DeptAbrv = "CS" } );
 
-        //    db.SaveChanges();
+           // TODO: add more objects to the test database
 
-        //    return db;
-        //}
+           db.SaveChanges();
+
+           return db;
+        }
+        LMSContext MakeEmptyDB()
+        {
+           var contextOptions = new DbContextOptionsBuilder<LMSContext>()
+           .UseInMemoryDatabase( "LMSControllerTest" )
+           .ConfigureWarnings( b => b.Ignore( InMemoryEventId.TransactionIgnoredWarning ) )
+           .UseApplicationServiceProvider( NewServiceProvider() )
+           .Options;
+
+           var db = new LMSContext(contextOptions);
+
+           db.Database.EnsureDeleted();
+           db.Database.EnsureCreated();
+
+           db.SaveChanges();
+
+           return db;
+        }
 
         private static ServiceProvider NewServiceProvider()
         {
