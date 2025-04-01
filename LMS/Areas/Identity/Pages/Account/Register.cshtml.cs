@@ -194,7 +194,60 @@ namespace LMS.Areas.Identity.Pages.Account
         /// <returns>The uID of the new user</returns>
         string CreateNewUser( string firstName, string lastName, DateTime DOB, string departmentAbbrev, string role )
         {
-            return "unknown";
+            // get new UID
+            var query = (from a in db.Administrators select a.UId)
+                        .Union(from s in db.Students select s.UId)
+                        .Union(from p in db.Professors select p.UId);
+            // the last biggest UID
+            string prevUId = query.ToList().Order().LastOrDefault();
+            if (prevUId == null) {
+                prevUId = "u0000000";
+            }
+            string newUIdValue = (int.Parse(prevUId.Substring(1)) + 1).ToString();
+            int UIdDigitLength = 7;
+            newUIdValue = newUIdValue.PadLeft(UIdDigitLength, '0');
+            string newUId = 'u' + newUIdValue;
+
+            // check valid dept abrv
+            if (role == "Professor" || role == "Student") {
+                var allAbbreviations = from d in db.Departments select d.DeptAbrv;
+                if (!allAbbreviations.Contains(departmentAbbrev)) {
+                    // not valid abrv
+                    throw new Exception("Not a valid department");
+                }
+            }
+
+            if (role == "Administrator") {
+                Administrator user = new();
+                user.UId = newUId;
+                user.FirstName = firstName;
+                user.LastName = lastName;
+                user.Dob = DateOnly.FromDateTime(DOB);
+
+                db.Administrators.Add(user);
+                db.SaveChanges();
+            } else if (role == "Professor") {
+                Professor user = new();
+                user.UId = newUId;
+                user.FirstName = firstName;
+                user.LastName = lastName;
+                user.Dob = DateOnly.FromDateTime(DOB);
+                user.DeptAbrv = departmentAbbrev;
+
+                db.Professors.Add(user);
+                db.SaveChanges();
+            } else if (role == "Student") {
+                Student user = new();
+                user.UId = newUId;
+                user.FirstName = firstName;
+                user.LastName = lastName;
+                user.Dob = DateOnly.FromDateTime(DOB);
+                user.DeptAbrv = departmentAbbrev;
+
+                db.Students.Add(user);
+                db.SaveChanges();
+            }
+            return newUId;
         }
 
         /*******End code to modify********/
