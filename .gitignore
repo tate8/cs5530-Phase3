@@ -1,0 +1,47 @@
+# .NET
+bin/
+obj/
+out/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# User-specific files
+.vs/
+.vscode/
+.idea/
+
+# User-specific config files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows Installer files (x64)
+x64/
+x86/
+
+# Node.js
+node_modules/
+
+# NPM
+npm-debug.log
+yarn-error.log
+
+# ASP.NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# IIS
+.idea/
+
+# Build directories
+wwwroot/
+wwwroot/dist/
