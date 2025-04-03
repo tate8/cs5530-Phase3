@@ -4,8 +4,10 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using LMS.Models.LMSModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 [assembly: InternalsVisibleTo( "LMSControllerTests" )]
@@ -30,7 +32,13 @@ namespace LMS.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetDepartments()
         {            
-            return Json(null);
+            var departments = from dep in db.Departments
+                               select new 
+                               {
+                                   subject = dep.DeptAbrv,
+                                   name = dep.Name 
+                               };
+            return Json(departments.ToArray());
         }
 
 
@@ -47,8 +55,20 @@ namespace LMS.Controllers
         /// </summary>
         /// <returns>The JSON array</returns>
         public IActionResult GetCatalog()
-        {            
-            return Json(null);
+        {
+            var courses = from dep in db.Departments
+                              select new
+                              {
+                                  subject = dep.DeptAbrv,
+                                  dname = dep.Name,
+                                  courses = from c in db.Courses where c.DeptAbrv == dep.DeptAbrv
+                                            select new
+                                            {
+                                                number = c.CNum,
+                                                cname = c.CName
+                                            }
+                              };
+            return Json(courses.ToArray());
         }
 
         /// <summary>
@@ -66,8 +86,21 @@ namespace LMS.Controllers
         /// <param name="number">The course number, as in 5530</param>
         /// <returns>The JSON array</returns>
         public IActionResult GetClassOfferings(string subject, int number)
-        {            
-            return Json(null);
+        {      
+            var classes = from course in db.Courses where course.CNum == number && course.DeptAbrv == subject
+                          from c in course.Classes 
+                          select new
+                          {
+                              season = c.Season,
+                              year = c.Year,
+                              location = c.Location,
+                              start = c.StartTime,
+                              end = c.EndTime,
+                              fname = c.UIdNavigation.FirstName,
+                              lname = c.UIdNavigation.LastName
+                          };
+            
+            return Json(classes.ToArray());
         }
 
         /// <summary>
@@ -83,8 +116,18 @@ namespace LMS.Controllers
         /// <param name="asgname">The name of the assignment in the category</param>
         /// <returns>The assignment contents</returns>
         public IActionResult GetAssignmentContents(string subject, int num, string season, int year, string category, string asgname)
-        {            
-            return Content("");
+        {
+            var asignContents = from course in db.Courses
+                        where course.CNum == num && course.DeptAbrv == subject
+                        from c in course.Classes
+                        where c.Season == season && c.Year == year
+                        from ac in c.AssignmentCategories
+                        where ac.Name == category
+                        from a in ac.Assignments
+                        where a.Name == asgname
+                        select a.Contents;
+            string result = asignContents.FirstOrDefault() ?? "";
+            return Content(result);
         }
 
 
@@ -103,8 +146,19 @@ namespace LMS.Controllers
         /// <param name="uid">The uid of the student who submitted it</param>
         /// <returns>The submission text</returns>
         public IActionResult GetSubmissionText(string subject, int num, string season, int year, string category, string asgname, string uid)
-        {            
-            return Content("");
+        {
+            var asignContents = from course in db.Courses
+                                where course.CNum == num && course.DeptAbrv == subject
+                                from c in course.Classes
+                                where c.Season == season && c.Year == year
+                                from ac in c.AssignmentCategories
+                                where ac.Name == category
+                                from a in ac.Assignments
+                                where a.Name == asgname
+                                from s in a.Submissions where s.UId == uid
+                                select s.Answer;
+            string result = asignContents.FirstOrDefault() ?? "";
+            return Content(result);
         }
 
 
@@ -126,6 +180,35 @@ namespace LMS.Controllers
         /// </returns>
         public IActionResult GetUser(string uid)
         {           
+            var userAdmin = from a in db.Administrators where a.UId == uid 
+                            select new
+                            {
+                                fname = a.FirstName,
+                                lname = a.LastName,
+                                uid = a.UId
+                            };
+            if (userAdmin.Any()) {
+                return Json(userAdmin.Single());
+            }
+            var otherUser = (from p in db.Professors where p.UId == uid
+                             select new 
+                             {
+                                 fname = p.FirstName,
+                                 lname = p.LastName,
+                                 uid = p.UId,
+                                 department = p.DeptAbrv
+                             }).Union(from s in db.Students where s.UId == uid
+                                      select new
+                                      {
+                                          fname = s.FirstName,
+                                          lname = s.LastName,
+                                          uid = s.UId,
+                                          department = s.DeptAbrv
+                                       });
+            if (otherUser.Any())
+            {
+                return Json(otherUser.Single());
+            }
             return Json(new { success = false });
         }
 

@@ -48,8 +48,6 @@ namespace LMSControllerTests
             Assert.Equal("Comp Sci", dept.Single().Name);
         }
 
-
-
         /// <summary>
         /// Make a very tiny in-memory database, containing just one department
         /// and nothing else.
