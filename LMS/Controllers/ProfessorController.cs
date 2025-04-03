@@ -193,6 +193,7 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>A JSON object containing success = true/false</returns>
         public IActionResult CreateAssignment(string subject, int num, string season, int year, string category, string asgname, int asgpoints, DateTime asgdue, string asgcontents)
         {
+            // TODO grades
             return Json(new { success = false });
         }
 
@@ -234,6 +235,7 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>A JSON object containing success = true/false</returns>
         public IActionResult GradeSubmission(string subject, int num, string season, int year, string category, string asgname, string uid, int score)
         {
+            // TODO grades
             return Json(new { success = false });
         }
 
@@ -255,6 +257,146 @@ namespace LMS_CustomIdentity.Controllers
         }
 
 
+        private string GradePercentageToString(double gradePercentage) {
+            if (gradePercentage >= 93) {
+                return "A";
+            } else if (gradePercentage >= 90) {
+                return "A-";
+            } else if (gradePercentage >= 87) {
+                return "B+";
+            } else if (gradePercentage >= 83) {
+                return "B";
+            } else if (gradePercentage >= 80) {
+                return "B-";
+            } else if (gradePercentage >= 77) {
+                return "C+";
+            } else if (gradePercentage >= 73) {
+                return "C";
+            } else if (gradePercentage >= 70) {
+                return "C-";
+            } else if (gradePercentage >= 67) {
+                return "D+";
+            } else if (gradePercentage >= 63) {
+                return "D";
+            } else if (gradePercentage >= 60) {
+                return "D-";
+            } else {
+                return "E";
+            }
+        }
+
+        public bool AutoGrade(string subject, int num, string season, int year)
+        {
+            
+            var classToGrade = from c in db.Classes where
+                        c.Season == season && c.Year == year
+                        && c.Course.DeptAbrv == subject && c.Course.CNum == num
+                        select c;
+            var classId = classToGrade.Single().ClassId;
+
+            var enrolled_in_class = from e in db.Enrolleds where e.ClassId == classId
+                        select e;
+
+            // for each student
+            foreach (var enrollment in enrolled_in_class) {
+                double scaledCategoryPoints = 0;
+                double numCategories = 0;
+                // calculate points they got on all categories
+                foreach(var cat in classToGrade.Single().AssignmentCategories) {
+                    uint studentCategoryPts = 0;
+                    uint totalCategoryPts = 0;
+
+                    // calculate total points student earned for this category
+                    foreach (var assignment in cat.Assignments) {
+                        totalCategoryPts += assignment.MaxPoints;
+
+                        uint studentScore = 0;
+
+                        foreach (var submission in assignment.Submissions) {
+                            if (submission.UId == enrollment.UId) {
+                                studentScore = submission.Score ?? 0;
+                            }
+                        }
+                        
+                        studentCategoryPts += studentScore;
+                    }
+
+                    double percentage = studentCategoryPts / totalCategoryPts;
+                    double weightedPoints = percentage * cat.Weight;
+                    numCategories += 1;
+                    scaledCategoryPoints += weightedPoints;
+                }
+
+                // re-scale points to be out of 100
+                double scalingFactor = 100 / scaledCategoryPoints;
+                double studentPercentageInClass = scaledCategoryPoints * scalingFactor;
+
+                string studentGrade = GradePercentageToString(studentPercentageInClass);
+
+                enrollment.Grade = studentGrade;
+
+                // return false if it fails
+                try {
+                    db.SaveChanges();
+                } catch {
+                    return false;
+                }
+            }
+
+
+            return true;
+
+            
+
+            /*
+
+            class_to_grade = ...
+            for each student enrolled in class_to_grade:
+                category_totals = []
+                for each category in class_to_grade.assignmentCategories:
+                    student_category_pts = 0
+                    for each assignment in category:
+                        student_category_pts += student grade on assignment or 0 if not found
+                    
+                    percentage = student_category_pts / total_pts
+                    weighted = percentage * weight
+                    category_totals.append(weighted)
+
+                # need to rescale
+                total = sum(category_totals)
+                scaling_factor = 100 / total
+                
+                total *= scaling_factor
+
+                grade = convert_to_letter_grade(total)
+
+
+                class = ...
+
+                from s in db.Students
+                    join e in db.Enrolled on s.UId equals e.UId
+                    join ac in db.AssignmentCategories on e.ClassId equals ac.ClassId
+                    join a in db.Assignments on ac.CatId equals a.CatId
+                    select new {
+                    
+                    }
+
+
+                    join sub in db.Submissions on a.AssignId equals sub.AssignId
+                    into rightSide
+                    from r in rightSide.DefaultIfEmpty()
+
+                    group by ac
+
+                    select new
+                    {
+
+                    }
+
+                    where ClassId == class
+            */
+
+        }
         
         /*******End code to modify********/
     }
