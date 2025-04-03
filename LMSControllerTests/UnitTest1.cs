@@ -30,7 +30,8 @@ namespace LMSControllerTests
         [Fact]
         public void CreateDepartmentTest()
         {
-           AdministratorController ctrl = new(MakeEmptyDB());
+           var database = MakeEmptyDB();
+           AdministratorController ctrl = new(database);
            
            var success = ctrl.CreateDepartment("CS", "Comp Sci") as JsonResult;
            dynamic x = success.Value;
@@ -39,6 +40,12 @@ namespace LMSControllerTests
            var success2 = ctrl.CreateDepartment("CS", "Comp Sci") as JsonResult;
            dynamic x2 = success2.Value;
            Assert.Equal( false, x2.success );
+
+            var dept = from depart in database.Departments select depart;
+            Assert.Equal(1, dept.Count() );
+            Assert.Equal("CS", dept.Single().DeptAbrv);
+
+            Assert.Equal("Comp Sci", dept.Single().Name);
         }
 
 
