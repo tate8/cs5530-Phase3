@@ -45,3 +45,4 @@ artifacts/
 # Build directories
 wwwroot/
 wwwroot/dist/
+.fake

@@ -51,9 +51,9 @@ namespace LMS.Controllers
         public IActionResult CreateDepartment(string subject, string name)
         {
             var query = from d in db.Departments select d.DeptAbrv;
-            bool isAvailable = query.Contains(subject);
+            bool alreadyExists = query.Contains(subject);
 
-            if (!isAvailable) {
+            if (alreadyExists) {
                 return Json(new { success = false});
             }
 
