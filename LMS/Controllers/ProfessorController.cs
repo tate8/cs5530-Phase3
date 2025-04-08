@@ -406,6 +406,7 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetMyClasses(string uid)
         {
+            
             var classes = from p in db.Professors
                           where p.UId == uid
                           from c in p.Classes
