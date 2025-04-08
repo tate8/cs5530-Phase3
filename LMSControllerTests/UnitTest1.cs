@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Security.Cryptography.X509Certificates;
 
 namespace LMSControllerTests
 {
@@ -48,6 +49,17 @@ namespace LMSControllerTests
             Assert.Equal("Comp Sci", dept.Single().Name);
         }
 
+        [Fact]
+        public void GetCatalogTest()
+        {
+            var database = MakeTinyDB();
+            CommonController ctrl = new(database);
+
+            var output = ctrl.GetCatalog() as JsonResult;
+            dynamic x = output.Value;
+            Assert.Equal(true, x.subject);
+        }
+
         /// <summary>
         /// Make a very tiny in-memory database, containing just one department
         /// and nothing else.
@@ -67,10 +79,14 @@ namespace LMSControllerTests
            db.Database.EnsureCreated();
 
            db.Departments.Add( new Department { Name = "KSoC", DeptAbrv = "CS" } );
+           db.Courses.Add(new Course { DeptAbrv = "CS", CNum = 3500, CName = "Software Practice 1" });
+           db.Courses.Add(new Course { DeptAbrv = "CS", CNum = 3505, CName = "Software Practice 2" });
+           db.Departments.Add(new Department { Name = "Math", DeptAbrv = "MATH" });
+           db.Courses.Add(new Course { DeptAbrv = "MATH", CNum = 1000, CName = "Calculus 1" });
 
-           // TODO: add more objects to the test database
+            // TODO: add more objects to the test database
 
-           db.SaveChanges();
+            db.SaveChanges();
 
            return db;
         }
