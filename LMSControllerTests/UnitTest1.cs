@@ -57,7 +57,7 @@ namespace LMSControllerTests
 
             var output = ctrl.GetCatalog() as JsonResult;
             dynamic x = output.Value;
-            Assert.Equal(true, x.subject);
+            Assert.Equal(2, x.Length);
         }
 
         /// <summary>
