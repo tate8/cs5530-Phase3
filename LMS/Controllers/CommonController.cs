@@ -61,7 +61,7 @@ namespace LMS.Controllers
                               {
                                   subject = dep.DeptAbrv,
                                   dname = dep.Name,
-                                  courses = from c in db.Courses where c.DeptAbrv == dep.DeptAbrv
+                                  courses = from c in dep.Courses
                                             select new
                                             {
                                                 number = c.CNum,
