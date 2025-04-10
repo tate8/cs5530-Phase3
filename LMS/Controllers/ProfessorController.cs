@@ -119,19 +119,16 @@ namespace LMS_CustomIdentity.Controllers
         public IActionResult GetStudentsInClass(string subject, int num, string season, int year)
         {
             var students = from co in db.Courses
-                           where co.CName == subject && co.CNum == num
+                           where co.DeptAbrv == subject && co.CNum == num
                            from c in co.Classes
                            where c.Season == season && c.Year == year
-                           from e in db.Enrolleds
-                           where e.ClassId == c.ClassId
-                           from s in db.Students
-                           where s.UId == c.UId
+                           from e in c.Enrolleds
                            select new
                            {
-                               fname = s.FirstName,
-                               lname = s.LastName,
-                               uid = s.UId,
-                               dob = s.Dob,
+                               fname = e.UIdNavigation.FirstName,
+                               lname = e.UIdNavigation.LastName,
+                               uid = e.UIdNavigation.UId,
+                               dob = e.UIdNavigation.Dob,
                                grade = e.Grade
                            };
             return Json(students.ToArray());
@@ -452,43 +449,68 @@ namespace LMS_CustomIdentity.Controllers
 
         public bool AutoGrade(string subject, int num, string season, int year)
         {
-            var classToGrade = from c in db.Classes where
+            var stuff = from c in db.Classes
+                        where c.Season == season && c.Year == year
+                        && c.Course.DeptAbrv == subject && c.Course.CNum == num
+                        from ac in c.AssignmentCategories
+                        select new
+                        {
+                            catId = ac.CatId,
+                            weight = ac.Weight,
+                            assignments = from a in ac.Assignments
+                                          select new
+                                          {
+                                              assignId = a.AssignId,
+                                              maxPoints = a.MaxPoints,
+                                              submissions = from s in a.Submissions
+                                                            select new
+                                                            {
+                                                                score = s.Score,
+                                                                uid = s.UId,
+                                                            }
+                                          }
+                        };
+            var classIDquery = from c in db.Classes where
                         c.Season == season && c.Year == year
                         && c.Course.DeptAbrv == subject && c.Course.CNum == num
-                        select c;
-            var classId = classToGrade.Single().ClassId;
+                        select c.ClassId;
+            var classId = classIDquery.Single();
 
-            var enrolled_in_class = from e in db.Enrolleds where e.ClassId == classId
-                        select e;
-
+            var enrolled_in_class = from e in db.Enrolleds 
+                                    where e.ClassId == classId
+                                    select e;
+            var catagories = stuff.ToArray();
             // for each student
             foreach (var enrollment in enrolled_in_class) {
                 double scaledCategoryPoints = 0;
-                double numCategories = 0;
                 // calculate points they got on all categories
-                foreach(var cat in classToGrade.Single().AssignmentCategories) {
+                uint sumOfCatWeights = 0;
+                foreach(var cat in catagories) {
                     uint studentCategoryPts = 0;
                     uint totalCategoryPts = 0;
 
                     // calculate total points student earned for this category
-                    foreach (var assignment in cat.Assignments) {
-                        totalCategoryPts += assignment.MaxPoints;
+                    foreach (var assignment in cat.assignments) {
+                        totalCategoryPts += assignment.maxPoints;
 
                         uint studentScore = 0;
 
-                        foreach (var submission in assignment.Submissions) {
-                            if (submission.UId == enrollment.UId) {
-                                studentScore = submission.Score ?? 0;
+                        foreach (var submission in assignment.submissions) {
+                            if (submission.uid == enrollment.UId) {
+                                studentScore = submission.score ?? 0;
                             }
                         }
                         
                         studentCategoryPts += studentScore;
                     }
-
-                    double percentage = studentCategoryPts / totalCategoryPts;
-                    double weightedPoints = percentage * cat.Weight;
-                    numCategories += 1;
-                    scaledCategoryPoints += weightedPoints;
+                    //no assignments or category totals to zero points
+                    if (totalCategoryPts > 0)
+                    {
+                        sumOfCatWeights += cat.weight;
+                        double percentage = (double)studentCategoryPts / (double)totalCategoryPts;
+                        double weightedPoints = (double)percentage * (double)cat.weight;
+                        scaledCategoryPoints += weightedPoints;
+                    }
                 }
 
                 // re-scale points to be out of 100
@@ -499,20 +521,20 @@ namespace LMS_CustomIdentity.Controllers
                 }
                 else
                 {
-                    double scalingFactor = 100 / scaledCategoryPoints; 
-                    studentPercentageInClass = scaledCategoryPoints * scalingFactor;
+                    double scalingFactor = 100 / (double)sumOfCatWeights; 
+                    studentPercentageInClass = (double)scaledCategoryPoints * (double)scalingFactor;
                 }
 
                 string studentGrade = GradePercentageToString(studentPercentageInClass);
 
                 enrollment.Grade = studentGrade;
 
-                // return false if it fails
-                try {
-                    db.SaveChanges();
-                } catch {
-                    return false;
-                }
+            }
+            // return false if it fails
+            try {
+                db.SaveChanges();
+            } catch {
+                return false;
             }
 
 
