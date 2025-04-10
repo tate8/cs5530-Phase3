@@ -245,7 +245,12 @@ namespace LMS.Areas.Identity.Pages.Account
                 user.DeptAbrv = departmentAbbrev;
 
                 db.Students.Add(user);
-                db.SaveChanges();
+                try
+                {
+                    db.SaveChanges();
+                } catch {
+                    return "";
+                }
             }
             return newUId;
         }
