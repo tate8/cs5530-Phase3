@@ -300,7 +300,7 @@ namespace LMS_CustomIdentity.Controllers
             {
                 return Json(new { success = false });
             }
-            bool success = AutoGrade(subject, num, season, year);
+            bool success = AutoGrade(subject, num, season, year, null);
 
             return Json(new { success = true });
         }
@@ -383,7 +383,7 @@ namespace LMS_CustomIdentity.Controllers
                 return Json(new { success = false });
             }
 
-            bool success = AutoGrade(subject, num, season, year);
+            bool success = AutoGrade(subject, num, season, year, uid);
 
 
             return Json(new { success = true });
@@ -447,7 +447,7 @@ namespace LMS_CustomIdentity.Controllers
             }
         }
 
-        public bool AutoGrade(string subject, int num, string season, int year)
+        public bool AutoGrade(string subject, int num, string season, int year, string? uid)
         {
             var stuff = from c in db.Classes
                         where c.Season == season && c.Year == year
@@ -477,7 +477,7 @@ namespace LMS_CustomIdentity.Controllers
             var classId = classIDquery.Single();
 
             var enrolled_in_class = from e in db.Enrolleds 
-                                    where e.ClassId == classId
+                                    where e.ClassId == classId && (uid == null || uid == e.UId)
                                     select e;
             var catagories = stuff.ToArray();
             // for each student
@@ -539,57 +539,6 @@ namespace LMS_CustomIdentity.Controllers
 
 
             return true;
-
-            
-
-            /*
-
-            class_to_grade = ...
-            for each student enrolled in class_to_grade:
-                category_totals = []
-                for each category in class_to_grade.assignmentCategories:
-                    student_category_pts = 0
-                    for each assignment in category:
-                        student_category_pts += student grade on assignment or 0 if not found
-                    
-                    percentage = student_category_pts / total_pts
-                    weighted = percentage * weight
-                    category_totals.append(weighted)
-
-                # need to rescale
-                total = sum(category_totals)
-                scaling_factor = 100 / total
-                
-                total *= scaling_factor
-
-                grade = convert_to_letter_grade(total)
-
-
-                class = ...
-
-                from s in db.Students
-                    join e in db.Enrolled on s.UId equals e.UId
-                    join ac in db.AssignmentCategories on e.ClassId equals ac.ClassId
-                    join a in db.Assignments on ac.CatId equals a.CatId
-                    select new {
-                    
-                    }
-
-
-                    join sub in db.Submissions on a.AssignId equals sub.AssignId
-                    into rightSide
-                    from r in rightSide.DefaultIfEmpty()
-
-                    group by ac
-
-                    select new
-                    {
-
-                    }
-
-                    where ClassId == class
-            */
-
         }
         
         /*******End code to modify********/
