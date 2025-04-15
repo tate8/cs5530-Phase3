@@ -198,8 +198,10 @@ namespace LMS.Areas.Identity.Pages.Account
             var query = (from a in db.Administrators select a.UId)
                         .Union(from s in db.Students select s.UId)
                         .Union(from p in db.Professors select p.UId);
+
+            var uidsSorted = from uid in query orderby uid select uid;
             // the last biggest UID
-            string prevUId = query.ToList().Order().LastOrDefault();
+            string prevUId = uidsSorted.LastOrDefault();
             if (prevUId == null) {
                 prevUId = "u0000000";
             }
@@ -208,49 +210,40 @@ namespace LMS.Areas.Identity.Pages.Account
             newUIdValue = newUIdValue.PadLeft(UIdDigitLength, '0');
             string newUId = 'u' + newUIdValue;
 
-            // check valid dept abrv
-            if (role == "Professor" || role == "Student") {
-                var allAbbreviations = from d in db.Departments select d.DeptAbrv;
-                if (!allAbbreviations.Contains(departmentAbbrev)) {
-                    // not valid abrv
-                    throw new Exception("Not a valid department");
-                }
-            }
 
-            if (role == "Administrator") {
-                Administrator user = new();
-                user.UId = newUId;
-                user.FirstName = firstName;
-                user.LastName = lastName;
-                user.Dob = DateOnly.FromDateTime(DOB);
+            try {
+                if (role == "Administrator") {
+                    Administrator user = new();
+                    user.UId = newUId;
+                    user.FirstName = firstName;
+                    user.LastName = lastName;
+                    user.Dob = DateOnly.FromDateTime(DOB);
 
-                db.Administrators.Add(user);
-                db.SaveChanges();
-            } else if (role == "Professor") {
-                Professor user = new();
-                user.UId = newUId;
-                user.FirstName = firstName;
-                user.LastName = lastName;
-                user.Dob = DateOnly.FromDateTime(DOB);
-                user.DeptAbrv = departmentAbbrev;
-
-                db.Professors.Add(user);
-                db.SaveChanges();
-            } else if (role == "Student") {
-                Student user = new();
-                user.UId = newUId;
-                user.FirstName = firstName;
-                user.LastName = lastName;
-                user.Dob = DateOnly.FromDateTime(DOB);
-                user.DeptAbrv = departmentAbbrev;
-
-                db.Students.Add(user);
-                try
-                {
+                    db.Administrators.Add(user);
                     db.SaveChanges();
-                } catch {
-                    return "";
+                } else if (role == "Professor") {
+                    Professor user = new();
+                    user.UId = newUId;
+                    user.FirstName = firstName;
+                    user.LastName = lastName;
+                    user.Dob = DateOnly.FromDateTime(DOB);
+                    user.DeptAbrv = departmentAbbrev;
+
+                    db.Professors.Add(user);
+                    db.SaveChanges();
+                } else if (role == "Student") {
+                    Student user = new();
+                    user.UId = newUId;
+                    user.FirstName = firstName;
+                    user.LastName = lastName;
+                    user.Dob = DateOnly.FromDateTime(DOB);
+                    user.DeptAbrv = departmentAbbrev;
+
+                    db.Students.Add(user);
+                    db.SaveChanges();
                 }
+            } catch {
+                return "unknown";
             }
             return newUId;
         }
