@@ -43,6 +43,4 @@ artifacts/
 .idea/
 
 # Build directories
-wwwroot/
-wwwroot/dist/
 .fake
